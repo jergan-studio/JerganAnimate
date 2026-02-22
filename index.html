@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>JerganAnimate - JVES</title>
+  <style>
+    body {
+      margin: 0;
+      display: flex;
+      height: 100vh;
+      font-family: monospace;
+    }
+
+    #editor {
+      width: 40%;
+      background: #111;
+      color: #0f0;
+      padding: 10px;
+      outline: none;
+      overflow: auto;
+    }
+
+    #rightPanel {
+      width: 60%;
+      display: flex;
+      flex-direction: column;
+    }
+
+    #stage {
+      flex: 1;
+      background: #eee;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .object {
+      position: absolute;
+      width: 100px;
+      height: 100px;
+      background: red;
+      transform-origin: center;
+    }
+
+    #controls {
+      padding: 10px;
+      background: #222;
+      color: white;
+    }
+
+    button {
+      padding: 5px 10px;
+      margin-right: 5px;
+    }
+  </style>
+</head>
+<body>
+
+<div id="editor" contenteditable="true">
+object box1 {
+  frame 1 {
+    x: 100
+    y: 100
+    scale: 1
+    rotation: 0
+  }
+
+  frame 60 {
+    x: 400
+    y: 200
+    scale: 2
+    rotation: 180
+  }
+}
+</div>
+
+<div id="rightPanel">
+  <div id="stage"></div>
+  <div id="controls">
+    <button onclick="compileJVES()">Compile</button>
+    <button onclick="play()">Play</button>
+  </div>
+</div>
+
+<script src="engine.js"></script>
+</body>
+</html>
