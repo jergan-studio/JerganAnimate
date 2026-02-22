@@ -1,111 +1,147 @@
-let animations = {};
-let objects = {};
+let currentTool = "select";
+let stage = document.getElementById("stage");
+let timeline = document.getElementById("timeline");
+let fileInput = document.getElementById("fileInput");
+
+let objects = [];
+let selected = null;
 let currentFrame = 1;
-let maxFrame = 60;
+let maxFrames = 60;
 let playing = false;
 
-function compileJVES() {
-  animations = {};
-  objects = {};
-  document.getElementById("stage").innerHTML = "";
+let keyframes = {}; // objectID -> frame -> transform
 
-  const code = document.getElementById("editor").innerText;
-
-  const objectRegex = /object\s+(\w+)\s*\{([\s\S]*?)\}/g;
-  let objectMatch;
-
-  while ((objectMatch = objectRegex.exec(code)) !== null) {
-    const objectName = objectMatch[1];
-    const objectBody = objectMatch[2];
-
-    animations[objectName] = {};
-
-    const frameRegex = /frame\s+(\d+)\s*\{([\s\S]*?)\}/g;
-    let frameMatch;
-
-    while ((frameMatch = frameRegex.exec(objectBody)) !== null) {
-      const frameNumber = parseInt(frameMatch[1]);
-      const frameBody = frameMatch[2];
-
-      const props = {};
-      const propRegex = /(\w+)\s*:\s*([-\d.]+)/g;
-      let propMatch;
-
-      while ((propMatch = propRegex.exec(frameBody)) !== null) {
-        props[propMatch[1]] = parseFloat(propMatch[2]);
-      }
-
-      animations[objectName][frameNumber] = props;
-      if (frameNumber > maxFrame) maxFrame = frameNumber;
-    }
-
-    createObject(objectName);
-  }
-
-  alert("JVES Compiled!");
+// Build timeline
+for (let i = 1; i <= maxFrames; i++) {
+  let frame = document.createElement("div");
+  frame.className = "frame";
+  frame.innerText = i;
+  frame.onclick = () => selectFrame(i);
+  frame.id = "frame-" + i;
+  timeline.appendChild(frame);
 }
 
-function createObject(name) {
-  const div = document.createElement("div");
-  div.className = "object";
-  div.id = name;
-  document.getElementById("stage").appendChild(div);
-  objects[name] = div;
+function selectFrame(frame) {
+  currentFrame = frame;
+  document.querySelectorAll(".frame").forEach(f => f.classList.remove("activeFrame"));
+  document.getElementById("frame-" + frame).classList.add("activeFrame");
+}
+
+function setTool(tool) {
+  currentTool = tool;
+}
+
+let startX, startY;
+
+stage.addEventListener("mousedown", e => {
+  if (currentTool === "draw") {
+    let rect = document.createElement("div");
+    rect.className = "object";
+    rect.style.left = e.offsetX + "px";
+    rect.style.top = e.offsetY + "px";
+    stage.appendChild(rect);
+
+    makeDraggable(rect);
+
+    objects.push(rect);
+    selected = rect;
+  }
+});
+
+function makeDraggable(el) {
+  el.onmousedown = function (e) {
+    if (currentTool !== "select") return;
+    selected = el;
+    startX = e.clientX - el.offsetLeft;
+    startY = e.clientY - el.offsetTop;
+
+    document.onmousemove = function (e) {
+      el.style.left = (e.clientX - startX) + "px";
+      el.style.top = (e.clientY - startY) + "px";
+    };
+
+    document.onmouseup = function () {
+      document.onmousemove = null;
+    };
+  };
+}
+
+fileInput.onchange = function (e) {
+  let file = e.target.files[0];
+  let img = document.createElement("img");
+  img.src = URL.createObjectURL(file);
+  img.className = "object";
+  img.style.width = "120px";
+  img.style.height = "auto";
+  stage.appendChild(img);
+
+  makeDraggable(img);
+
+  objects.push(img);
+  selected = img;
+};
+
+function addKeyframe() {
+  if (!selected) return;
+
+  let id = objects.indexOf(selected);
+  if (!keyframes[id]) keyframes[id] = {};
+
+  keyframes[id][currentFrame] = {
+    x: selected.offsetLeft,
+    y: selected.offsetTop
+  };
+
+  let diamond = document.createElement("div");
+  diamond.className = "keyframe";
+  document.getElementById("frame-" + currentFrame).appendChild(diamond);
 }
 
 function play() {
-  currentFrame = 1;
   playing = true;
+  let frame = 1;
+
+  function animate() {
+    if (!playing || frame > maxFrames) {
+      playing = false;
+      return;
+    }
+
+    updateFrame(frame);
+    frame++;
+    requestAnimationFrame(animate);
+  }
+
   animate();
 }
 
-function animate() {
-  if (!playing) return;
-
-  updateFrame(currentFrame);
-
-  currentFrame++;
-  if (currentFrame > maxFrame) {
-    playing = false;
-    return;
-  }
-
-  requestAnimationFrame(animate);
-}
-
 function updateFrame(frame) {
-  for (let name in animations) {
-    const frames = animations[name];
-    const keys = Object.keys(frames).map(Number).sort((a,b)=>a-b);
+  objects.forEach((obj, index) => {
+    if (!keyframes[index]) return;
 
-    let prev = keys[0];
-    let next = keys[keys.length - 1];
+    let frames = Object.keys(keyframes[index]).map(Number).sort((a,b)=>a-b);
+    let prev = frames[0];
+    let next = frames[frames.length - 1];
 
-    for (let i = 0; i < keys.length; i++) {
-      if (keys[i] <= frame) prev = keys[i];
-      if (keys[i] >= frame) {
-        next = keys[i];
+    for (let i = 0; i < frames.length; i++) {
+      if (frames[i] <= frame) prev = frames[i];
+      if (frames[i] >= frame) {
+        next = frames[i];
         break;
       }
     }
 
-    const progress = (frame - prev) / (next - prev || 1);
+    let progress = (frame - prev) / (next - prev || 1);
 
-    const prevProps = frames[prev];
-    const nextProps = frames[next];
+    let prevData = keyframes[index][prev];
+    let nextData = keyframes[index][next];
 
-    const x = lerp(prevProps.x || 0, nextProps.x || 0, progress);
-    const y = lerp(prevProps.y || 0, nextProps.y || 0, progress);
-    const scale = lerp(prevProps.scale || 1, nextProps.scale || 1, progress);
-    const rotation = lerp(prevProps.rotation || 0, nextProps.rotation || 0, progress);
+    let x = lerp(prevData.x, nextData.x, progress);
+    let y = lerp(prevData.y, nextData.y, progress);
 
-    const el = objects[name];
-    el.style.transform = `
-      translate(${x}px, ${y}px)
-      scale(${scale})
-      rotate(${rotation}deg)
-    `;
-  }
+    obj.style.left = x + "px";
+    obj.style.top = y + "px";
+  });
 }
 
 function lerp(a, b, t) {
