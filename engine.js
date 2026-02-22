@@ -1,41 +1,63 @@
 let stage = document.getElementById("stage");
-let timelineDiv = document.getElementById("timeline");
+let timelineContainer = document.getElementById("timelineContainer");
 let fileInput = document.getElementById("fileInput");
+let currentFrameIndicator = document.getElementById("currentFrameIndicator");
 
 let objects = [];
 let keyframes = {};
 let currentTool = "select";
-let totalFrames = 30;
+let totalFrames = 60;
 let playing = false;
 
-// Tool selection
-function setTool(tool) { currentTool = tool; }
+function setTool(tool) {
+  currentTool = tool;
+}
 
-// Add new object
+function setTotalFrames() {
+  let input = document.getElementById("frameCount");
+  let value = parseInt(input.value);
+  if (value > 0) {
+    totalFrames = value;
+    buildTimeline();
+  }
+}
+
 function addObject(el, name) {
   el.classList.add("object");
   stage.appendChild(el);
 
-  objects.push({
-    el: el,
-    name: name,
-    scale: 1,
-    rotation: 0
-  });
-
+  objects.push({ el, name, scale: 1, rotation: 0 });
   keyframes[objects.length - 1] = {};
-  makeSelectable(el);
   buildTimeline();
 }
 
-// Make object draggable and allow transform tools
+stage.addEventListener("mousedown", e => {
+  if (currentTool === "draw") {
+    let div = document.createElement("div");
+    div.style.left = e.offsetX + "px";
+    div.style.top = e.offsetY + "px";
+    div.style.width = "100px";
+    div.style.height = "100px";
+    div.style.background = "red";
+    makeSelectable(div);
+    addObject(div, "shape" + objects.length);
+  }
+});
+
+fileInput.onchange = function(e) {
+  let file = e.target.files[0];
+  let img = document.createElement("img");
+  img.src = URL.createObjectURL(file);
+  img.style.width = "120px";
+  img.style.height = "auto";
+  img.style.left = "100px";
+  img.style.top = "100px";
+  makeSelectable(img);
+  addObject(img, file.name);
+};
+
 function makeSelectable(el) {
   el.onmousedown = function(e) {
-    e.preventDefault();
-    let obj = objects.find(o => o.el === el);
-    if (!obj) return;
-
-    // Move tool
     if (currentTool === "select") {
       let offsetX = e.clientX - el.offsetLeft;
       let offsetY = e.clientY - el.offsetTop;
@@ -44,32 +66,25 @@ function makeSelectable(el) {
         el.style.left = (e.clientX - offsetX) + "px";
         el.style.top = (e.clientY - offsetY) + "px";
       };
-
-      document.onmouseup = function() { document.onmousemove = null; };
+      document.onmouseup = () => { document.onmousemove = null; };
     }
 
-    // Scale tool
     if (currentTool === "scale") {
-      obj.scale += 0.1;
-      updateTransform(obj);
+      objects.forEach(obj => { if(obj.el === el){ obj.scale += 0.1; updateTransform(obj); }});
     }
 
-    // Rotate tool
     if (currentTool === "rotate") {
-      obj.rotation += 15;
-      updateTransform(obj);
+      objects.forEach(obj => { if(obj.el === el){ obj.rotation += 15; updateTransform(obj); }});
     }
   };
 }
 
 function updateTransform(obj) {
-  obj.el.style.transform =
-    `scale(${obj.scale}) rotate(${obj.rotation}deg)`;
+  obj.el.style.transform = `scale(${obj.scale}) rotate(${obj.rotation}deg)`;
 }
 
-// Build horizontal timeline
 function buildTimeline() {
-  timelineDiv.innerHTML = "";
+  timelineContainer.innerHTML = "";
 
   objects.forEach((obj, index) => {
     let row = document.createElement("div");
@@ -83,7 +98,9 @@ function buildTimeline() {
     for (let f = 1; f <= totalFrames; f++) {
       let cell = document.createElement("div");
       cell.className = "frame";
-      if (keyframes[index][f]) {
+      cell.innerText = "";
+
+      if (keyframes[index] && keyframes[index][f]) {
         cell.innerText = "!";
         cell.classList.add("key");
       }
@@ -92,11 +109,12 @@ function buildTimeline() {
       row.appendChild(cell);
     }
 
-    timelineDiv.appendChild(row);
+    timelineContainer.appendChild(row);
   });
+
+  currentFrameIndicator.style.left = "0px";
 }
 
-// Add keyframe
 function addKeyframe(index, frame) {
   let obj = objects[index];
   keyframes[index][frame] = {
@@ -108,63 +126,28 @@ function addKeyframe(index, frame) {
   buildTimeline();
 }
 
-// Draw tool
-stage.addEventListener("mousedown", e => {
-  if (currentTool === "draw") {
-    let rect = document.createElement("div");
-    rect.style.left = (e.offsetX - 50) + "px"; // center
-    rect.style.top = (e.offsetY - 50) + "px";
-    rect.style.width = "100px";
-    rect.style.height = "100px";
-    rect.style.background = "red";
-    addObject(rect, "shape" + objects.length);
-  }
-});
-
-// File input
-fileInput.onchange = function(e) {
-  let file = e.target.files[0];
-  if (!file) return;
-  let img = document.createElement("img");
-  img.src = URL.createObjectURL(file);
-  img.style.width = "120px";
-  img.style.left = "50px";
-  img.style.top = "50px";
-  img.style.position = "absolute";
-  addObject(img, file.name);
-};
-
-// Play animation
 function play() {
   playing = true;
   let frame = 1;
 
+  let capturer = new CCapture({ format: 'webm', framerate: 60 });
+
+  capturer.start();
+
   function animate() {
     if (!playing || frame > totalFrames) {
+      capturer.stop();
+      capturer.save();
       playing = false;
       return;
     }
 
-    objects.forEach((obj, index) => {
-      let frames = Object.keys(keyframes[index]).map(Number).sort((a,b)=>a-b);
-      if (frames.length < 2) return;
+    updateFrame(frame);
 
-      let prev = frames[0], next = frames[frames.length-1];
-      for (let i=0;i<frames.length;i++) {
-        if (frames[i] <= frame) prev=frames[i];
-        if (frames[i] >= frame) { next=frames[i]; break; }
-      }
+    // Move frame indicator
+    currentFrameIndicator.style.left = (frame * 40 + 120) + "px";
 
-      let progress = (frame - prev) / (next - prev || 1);
-      let prevData = keyframes[index][prev];
-      let nextData = keyframes[index][next];
-
-      obj.el.style.left = lerp(prevData.x,nextData.x,progress) + "px";
-      obj.el.style.top = lerp(prevData.y,nextData.y,progress) + "px";
-      obj.scale = lerp(prevData.scale,nextData.scale,progress);
-      obj.rotation = lerp(prevData.rotation,nextData.rotation,progress);
-      updateTransform(obj);
-    });
+    capturer.capture(stage);
 
     frame++;
     requestAnimationFrame(animate);
@@ -173,4 +156,34 @@ function play() {
   animate();
 }
 
-function lerp(a,b,t){ return a + (b - a)*t; }
+function updateFrame(frame) {
+  objects.forEach((obj, index) => {
+    let frames = Object.keys(keyframes[index] || {}).map(Number).sort((a,b)=>a-b);
+    if (frames.length < 1) return;
+
+    let prev = frames[0];
+    let next = frames[frames.length - 1];
+
+    for (let i=0;i<frames.length;i++){
+      if(frames[i]<=frame) prev=frames[i];
+      if(frames[i]>=frame){ next=frames[i]; break;}
+    }
+
+    let progress = (frame-prev)/(next-prev || 1);
+    let prevData = keyframes[index][prev];
+    let nextData = keyframes[index][next] || prevData;
+
+    obj.el.style.left = lerp(prevData.x, nextData.x, progress) + "px";
+    obj.el.style.top = lerp(prevData.y, nextData.y, progress) + "px";
+    obj.scale = lerp(prevData.scale, nextData.scale, progress);
+    obj.rotation = lerp(prevData.rotation, nextData.rotation, progress);
+    updateTransform(obj);
+  });
+}
+
+function lerp(a,b,t){ return a + (b-a)*t; }
+
+function downloadMP4() {
+  alert("MP4 download will start after playback using CCapture.js!");
+  play();
+}
