@@ -16,6 +16,9 @@
     #topbar {
       padding: 6px;
       border-bottom: 1px solid #00ff88;
+      display: flex;
+      align-items: center;
+      gap: 6px;
     }
 
     #workspace {
@@ -24,42 +27,46 @@
     }
 
     #tools {
-      width: 150px;
+      width: 160px;
       border-right: 1px solid #00ff88;
       padding: 6px;
+      display: flex;
+      flex-direction: column;
+      gap: 5px;
     }
 
-    #tools button, #tools input {
+    #tools button, #tools input, #tools label {
       width: 100%;
-      margin-bottom: 6px;
       background: black;
       color: #00ff88;
       border: 1px solid #00ff88;
       cursor: pointer;
+      text-align: center;
+    }
+
+    #stageContainer {
+      flex: 1;
+      position: relative;
+      background: #1a1a1a;
+      display: flex;
+      flex-direction: column;
     }
 
     #stage {
       flex: 1;
-      position: relative;
-      background: #1a1a1a;
-      overflow: hidden;
+      background-color: #111;
+      border-bottom: 1px solid #00ff88;
     }
 
-    .object {
-      position: absolute;
-      background: red;
-      width: 100px;
-      height: 100px;
-      transform-origin: center;
-      cursor: pointer;
-    }
-
-    #timelineContainer {
+    #timeline {
       height: 150px;
       border-top: 1px solid #00ff88;
       overflow-x: auto;
       white-space: nowrap;
       padding: 5px;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
     }
 
     .row {
@@ -79,48 +86,37 @@
       cursor: pointer;
     }
 
-    .key {
+    .keyframe {
       color: #00ff88;
       font-weight: bold;
     }
 
-    #currentFrameIndicator {
-      position: absolute;
-      height: 150px;
-      width: 2px;
-      background: #ff8800;
-      top: 0;
-      pointer-events: none;
-    }
   </style>
 </head>
 <body>
 
 <div id="topbar">
-  JerganAnimate JVES
+  <button onclick="setTool('draw')">Draw Rect</button>
+  <button onclick="setTool('select')">Move</button>
+  <button onclick="setTool('scale')">Scale</button>
+  <button onclick="setTool('rotate')">Rotate</button>
+  <input type="file" id="fileInput">
+  <label>Total Frames: <input type="number" id="totalFramesInput" value="60" min="1"></label>
+  <button onclick="play()">Play</button>
+  <button onclick="downloadMP4()">Download MP4</button>
 </div>
 
 <div id="workspace">
   <div id="tools">
-    <button onclick="setTool('draw')">Draw</button>
-    <button onclick="setTool('select')">Move</button>
-    <button onclick="setTool('scale')">Scale</button>
-    <button onclick="setTool('rotate')">Rotate</button>
-    <input type="file" id="fileInput">
-    <input type="number" id="frameCount" min="1" value="60">
-    <button onclick="setTotalFrames()">Set Frames</button>
-    <button onclick="play()">Play</button>
-    <button onclick="downloadMP4()">Download MP4</button>
+    <span>Tools Panel</span>
   </div>
-
-  <div id="stage"></div>
+  <div id="stageContainer">
+    <canvas id="stage" width="800" height="400"></canvas>
+    <div id="timeline"></div>
+  </div>
 </div>
 
-<div id="timelineContainer"></div>
-<div id="currentFrameIndicator"></div>
-
-<!-- CCapture.js for MP4 export -->
-<script src="https://cdn.jsdelivr.net/npm/ccapture.js@1.1.0/build/CCapture.all.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/ccapture.js/1.1.0/CCapture.all.min.js"></script>
 <script src="engine.js"></script>
 </body>
 </html>
