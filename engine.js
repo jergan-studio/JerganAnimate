@@ -1,134 +1,93 @@
 let stage = document.getElementById("stage");
-let canvas = document.getElementById("drawCanvas");
-let ctx = canvas.getContext("2d");
-let colorPicker = document.getElementById("colorPicker");
-let toolLabel = document.getElementById("toolLabel");
-let fileInput = document.getElementById("fileInput");
 let timeline = document.getElementById("timeline");
+let fileInput = document.getElementById("fileInput");
 
-canvas.width = stage.clientWidth;
-canvas.height = stage.clientHeight;
+let objects = []; // {el, name, scale, rotation}
+let keyframes = {}; // objectIndex -> frame -> {x, y, scale, rotation}
 
-let tool = "select";
-let drawing = false;
-let objects = [];
-let keyframes = {};
+let currentTool = "select";
 let totalFrames = 30;
 let playing = false;
 
-function setTool(t) {
-  tool = t;
-  toolLabel.innerText = t;
+// --- TOOL SYSTEM ---
+function setTool(tool) {
+  currentTool = tool;
 }
 
-window.addEventListener("resize", () => {
-  canvas.width = stage.clientWidth;
-  canvas.height = stage.clientHeight;
-});
+// --- ADD OBJECTS ---
+function addObject(el, name) {
+  el.classList.add("object");
+  stage.appendChild(el);
 
-
-// ===== DRAW TOOL =====
-canvas.addEventListener("mousedown", (e) => {
-  if (tool !== "draw") return;
-
-  drawing = true;
-  ctx.strokeStyle = colorPicker.value;
-  ctx.lineWidth = 3;
-  ctx.beginPath();
-  ctx.moveTo(e.offsetX, e.offsetY);
-});
-
-canvas.addEventListener("mousemove", (e) => {
-  if (!drawing) return;
-  ctx.lineTo(e.offsetX, e.offsetY);
-  ctx.stroke();
-});
-
-canvas.addEventListener("mouseup", () => {
-  drawing = false;
-});
-
-
-// ===== ADD RECTANGLE TOOL =====
-stage.addEventListener("mousedown", (e) => {
-
-  if (tool !== "rectangle") return;
-  if (e.target !== stage) return;
-
-  let box = document.createElement("div");
-  box.className = "object";
-  box.style.left = e.offsetX + "px";
-  box.style.top = e.offsetY + "px";
-  box.style.background = colorPicker.value;
-
-  stage.appendChild(box);
-
-  makeDraggable(box);
-
-  objects.push({
-    el: box,
-    name: "box" + objects.length,
-    scale: 1,
-    rotation: 0
-  });
-
-  keyframes[objects.length - 1] = {};
+  objects.push({el, name, scale:1, rotation:0});
+  keyframes[objects.length-1] = {};
   buildTimeline();
-});
-
-
-// ===== SELECT / MOVE =====
-function makeDraggable(el) {
-  el.onmousedown = function(e) {
-    if (tool !== "select") return;
-
-    let offsetX = e.clientX - el.offsetLeft;
-    let offsetY = e.clientY - el.offsetTop;
-
-    document.onmousemove = function(e) {
-      el.style.left = (e.clientX - offsetX) + "px";
-      el.style.top = (e.clientY - offsetY) + "px";
-    };
-
-    document.onmouseup = function() {
-      document.onmousemove = null;
-    };
-  };
+  makeInteractive(el);
 }
 
+// --- INTERACTIVE OBJECTS ---
+function makeInteractive(el) {
+  el.onmousedown = function(e){
+    if(currentTool === "select"){
+      let offsetX = e.clientX - el.offsetLeft;
+      let offsetY = e.clientY - el.offsetTop;
 
-// ===== FILE INSERT =====
-fileInput.onchange = function(e) {
+      document.onmousemove = function(e){
+        el.style.left = (e.clientX - offsetX) + "px";
+        el.style.top = (e.clientY - offsetY) + "px";
+      }
+
+      document.onmouseup = function(){
+        document.onmousemove = null;
+      }
+    }
+
+    if(currentTool === "scale" || currentTool === "rotate"){
+      let obj = objects.find(o => o.el === el);
+      if(currentTool === "scale") obj.scale += 0.1;
+      if(currentTool === "rotate") obj.rotation += 15;
+      updateTransform(obj);
+    }
+  }
+}
+
+// --- TRANSFORM UPDATE ---
+function updateTransform(obj){
+  obj.el.style.transform = `scale(${obj.scale}) rotate(${obj.rotation}deg)`;
+}
+
+// --- DRAW TOOL ---
+stage.addEventListener("mousedown", e => {
+  if(currentTool === "draw"){
+    let div = document.createElement("div");
+    div.style.left = e.offsetX + "px";
+    div.style.top = e.offsetY + "px";
+    div.style.width = "80px";
+    div.style.height = "80px";
+    div.style.background = "red";
+    addObject(div, "shape"+objects.length);
+  }
+});
+
+// --- FILE INSERT ---
+fileInput.onchange = function(e){
   let file = e.target.files[0];
-  if (!file) return;
+  if(!file) return;
 
   let img = document.createElement("img");
   img.src = URL.createObjectURL(file);
-  img.style.position = "absolute";
-  img.style.left = "100px";
-  img.style.top = "100px";
-  img.style.width = "150px";
+  img.style.width = "120px";
+  img.style.height = "auto";
+  img.style.left = "50px";
+  img.style.top = "50px";
+  addObject(img, file.name);
+}
 
-  stage.appendChild(img);
-  makeDraggable(img);
-
-  objects.push({
-    el: img,
-    name: file.name,
-    scale: 1,
-    rotation: 0
-  });
-
-  keyframes[objects.length - 1] = {};
-  buildTimeline();
-};
-
-
-// ===== TIMELINE =====
-function buildTimeline() {
+// --- TIMELINE ---
+function buildTimeline(){
   timeline.innerHTML = "";
 
-  objects.forEach((obj, index) => {
+  objects.forEach((obj,index)=>{
     let row = document.createElement("div");
     row.className = "row";
 
@@ -137,23 +96,16 @@ function buildTimeline() {
     label.innerText = obj.name;
     row.appendChild(label);
 
-    for (let f = 1; f <= totalFrames; f++) {
+    for(let f=1;f<=totalFrames;f++){
       let cell = document.createElement("div");
       cell.className = "frame";
 
-      if (keyframes[index][f]) {
+      if(keyframes[index][f]) {
         cell.innerText = "!";
         cell.classList.add("key");
       }
 
-      cell.onclick = function() {
-        keyframes[index][f] = {
-          x: obj.el.offsetLeft,
-          y: obj.el.offsetTop
-        };
-        buildTimeline();
-      };
-
+      cell.onclick = ()=> addKeyframe(index,f);
       row.appendChild(cell);
     }
 
@@ -161,41 +113,48 @@ function buildTimeline() {
   });
 }
 
+// --- ADD KEYFRAME ---
+function addKeyframe(index, frame){
+  let obj = objects[index];
+  keyframes[index][frame] = {
+    x: obj.el.offsetLeft,
+    y: obj.el.offsetTop,
+    scale: obj.scale,
+    rotation: obj.rotation
+  };
+  buildTimeline();
+}
 
-// ===== PLAY =====
-function play() {
+// --- PLAY ANIMATION ---
+function play(){
   playing = true;
   let frame = 1;
 
-  function animate() {
-    if (!playing || frame > totalFrames) {
-      playing = false;
+  function animate(){
+    if(!playing || frame>totalFrames){
+      playing=false;
       return;
     }
 
-    objects.forEach((obj, index) => {
+    objects.forEach((obj,index)=>{
       let frames = Object.keys(keyframes[index]).map(Number).sort((a,b)=>a-b);
-      if (frames.length < 2) return;
+      if(frames.length<2) return;
 
-      let prev = frames[0];
-      let next = frames[frames.length - 1];
-
-      for (let i = 0; i < frames.length; i++) {
-        if (frames[i] <= frame) prev = frames[i];
-        if (frames[i] >= frame) {
-          next = frames[i];
-          break;
-        }
+      let prev = frames[0], next = frames[frames.length-1];
+      for(let i=0;i<frames.length;i++){
+        if(frames[i]<=frame) prev=frames[i];
+        if(frames[i]>=frame) {next=frames[i]; break;}
       }
 
-      let progress = (frame - prev) / (next - prev || 1);
-      let p = keyframes[index][prev];
-      let n = keyframes[index][next];
+      let progress = (frame-prev)/(next-prev||1);
+      let prevData = keyframes[index][prev];
+      let nextData = keyframes[index][next];
 
-      obj.el.style.left =
-        (p.x + (n.x - p.x) * progress) + "px";
-      obj.el.style.top =
-        (p.y + (n.y - p.y) * progress) + "px";
+      obj.el.style.left = lerp(prevData.x,nextData.x,progress)+"px";
+      obj.el.style.top = lerp(prevData.y,nextData.y,progress)+"px";
+      obj.scale = lerp(prevData.scale,nextData.scale,progress);
+      obj.rotation = lerp(prevData.rotation,nextData.rotation,progress);
+      updateTransform(obj);
     });
 
     frame++;
@@ -203,4 +162,9 @@ function play() {
   }
 
   animate();
+}
+
+// --- LINEAR INTERPOLATION ---
+function lerp(a,b,t){
+  return a + (b-a)*t;
 }
