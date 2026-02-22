@@ -16,9 +16,6 @@
     #topbar {
       padding: 6px;
       border-bottom: 1px solid #00ff88;
-      display: flex;
-      align-items: center;
-      gap: 10px;
     }
 
     #workspace {
@@ -27,7 +24,7 @@
     }
 
     #tools {
-      width: 150px;
+      width: 140px;
       border-right: 1px solid #00ff88;
       padding: 6px;
     }
@@ -48,23 +45,18 @@
       overflow: hidden;
     }
 
-    canvas {
-      position: absolute;
-      top: 0;
-      left: 0;
-    }
-
     .object {
       position: absolute;
-      width: 100px;
-      height: 100px;
       background: red;
+      width: 80px;
+      height: 80px;
+      border-radius: 50%;
       transform-origin: center;
-      cursor: move;
+      cursor: pointer;
     }
 
     #timeline {
-      height: 120px;
+      height: 150px;
       border-top: 1px solid #00ff88;
       overflow-x: auto;
       white-space: nowrap;
@@ -74,6 +66,7 @@
     .row {
       display: flex;
       align-items: center;
+      margin-bottom: 3px;
     }
 
     .rowLabel {
@@ -81,7 +74,7 @@
     }
 
     .frame {
-      width: 35px;
+      width: 40px;
       height: 25px;
       border-right: 1px solid #003322;
       text-align: center;
@@ -92,30 +85,23 @@
       color: #00ff88;
       font-weight: bold;
     }
-
   </style>
 </head>
 <body>
 
-<div id="topbar">
-  Tool:
-  <span id="toolLabel">Select</span>
-  Color:
-  <input type="color" id="colorPicker" value="#ff0000">
-</div>
+<div id="topbar">JerganAnimate JVES</div>
 
 <div id="workspace">
   <div id="tools">
-    <button onclick="setTool('select')">Select</button>
     <button onclick="setTool('draw')">Draw</button>
-    <button onclick="setTool('rectangle')">Add Box</button>
+    <button onclick="setTool('select')">Move</button>
+    <button onclick="setTool('scale')">Scale</button>
+    <button onclick="setTool('rotate')">Rotate</button>
     <input type="file" id="fileInput">
     <button onclick="play()">Play</button>
   </div>
 
-  <div id="stage">
-    <canvas id="drawCanvas"></canvas>
-  </div>
+  <div id="stage"></div>
 </div>
 
 <div id="timeline"></div>
