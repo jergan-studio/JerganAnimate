@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>JerganAnimate - JVES</title>
+  <title>JerganAnimate JVES</title>
   <style>
     body {
       margin: 0;
@@ -13,47 +13,75 @@
       height: 100vh;
     }
 
+    #topbar {
+      padding: 5px;
+      border-bottom: 1px solid #00ff88;
+    }
+
+    #workspace {
+      flex: 1;
+      display: flex;
+    }
+
+    #tools {
+      width: 140px;
+      border-right: 1px solid #00ff88;
+      padding: 5px;
+    }
+
+    #tools button {
+      width: 100%;
+      margin-bottom: 5px;
+      background: black;
+      color: #00ff88;
+      border: 1px solid #00ff88;
+      cursor: pointer;
+    }
+
     #stage {
       flex: 1;
       position: relative;
       background: #111;
-      border-bottom: 1px solid #00ff88;
+      background-image:
+        linear-gradient(#1a1a1a 1px, transparent 1px),
+        linear-gradient(90deg, #1a1a1a 1px, transparent 1px);
+      background-size: 20px 20px;
+      overflow: hidden;
     }
 
     .object {
-      width: 80px;
-      height: 80px;
-      border-radius: 50%;
-      background: red;
       position: absolute;
-      cursor: move;
+      background: red;
+      width: 100px;
+      height: 100px;
+      transform-origin: center;
+      cursor: pointer;
     }
 
-    #timeline {
+    #timelineContainer {
       height: 200px;
-      overflow: auto;
+      overflow-x: auto;
       border-top: 1px solid #00ff88;
+      white-space: nowrap;
     }
 
-    table {
-      border-collapse: collapse;
-      width: 100%;
-    }
-
-    th, td {
-      border: 1px solid #003322;
-      width: 40px;
-      height: 30px;
-      text-align: center;
-    }
-
-    th {
-      background: #002211;
+    .timelineRow {
+      display: flex;
+      align-items: center;
     }
 
     .rowLabel {
-      width: 100px;
-      background: #001a11;
+      width: 120px;
+      border-right: 1px solid #003322;
+      padding: 3px;
+    }
+
+    .frameCell {
+      width: 40px;
+      height: 25px;
+      border-right: 1px solid #002211;
+      text-align: center;
+      cursor: pointer;
     }
 
     .keyframe {
@@ -61,26 +89,28 @@
       font-weight: bold;
     }
 
-    button {
-      background: black;
-      color: #00ff88;
-      border: 1px solid #00ff88;
-      padding: 5px;
-      margin: 5px;
-      cursor: pointer;
-    }
-
   </style>
 </head>
 <body>
 
-<div>
-  <button onclick="addSphere()">Add Sphere</button>
-  <button onclick="play()">Play</button>
+<div id="topbar">
+  JerganAnimate JVES
 </div>
 
-<div id="stage"></div>
-<div id="timeline"></div>
+<div id="workspace">
+  <div id="tools">
+    <button onclick="setTool('select')">Select</button>
+    <button onclick="setTool('draw')">Draw</button>
+    <button onclick="setTool('scale')">Scale</button>
+    <button onclick="setTool('rotate')">Rotate</button>
+    <input type="file" id="fileInput" accept="image/*">
+    <button onclick="play()">Play</button>
+  </div>
+
+  <div id="stage"></div>
+</div>
+
+<div id="timelineContainer"></div>
 
 <script src="engine.js"></script>
 </body>
