@@ -1,107 +1,134 @@
 let stage = document.getElementById("stage");
-let timeline = document.getElementById("timeline");
+let canvas = document.getElementById("drawCanvas");
+let ctx = canvas.getContext("2d");
+let colorPicker = document.getElementById("colorPicker");
+let toolLabel = document.getElementById("toolLabel");
 let fileInput = document.getElementById("fileInput");
+let timeline = document.getElementById("timeline");
 
+canvas.width = stage.clientWidth;
+canvas.height = stage.clientHeight;
+
+let tool = "select";
+let drawing = false;
 let objects = [];
 let keyframes = {};
-let tool = "draw";
 let totalFrames = 30;
 let playing = false;
 
 function setTool(t) {
   tool = t;
+  toolLabel.innerText = t;
 }
 
-function createObject(el, name) {
-  el.classList.add("object");
-  el.style.left = "100px";
-  el.style.top = "100px";
-  stage.appendChild(el);
+window.addEventListener("resize", () => {
+  canvas.width = stage.clientWidth;
+  canvas.height = stage.clientHeight;
+});
+
+
+// ===== DRAW TOOL =====
+canvas.addEventListener("mousedown", (e) => {
+  if (tool !== "draw") return;
+
+  drawing = true;
+  ctx.strokeStyle = colorPicker.value;
+  ctx.lineWidth = 3;
+  ctx.beginPath();
+  ctx.moveTo(e.offsetX, e.offsetY);
+});
+
+canvas.addEventListener("mousemove", (e) => {
+  if (!drawing) return;
+  ctx.lineTo(e.offsetX, e.offsetY);
+  ctx.stroke();
+});
+
+canvas.addEventListener("mouseup", () => {
+  drawing = false;
+});
+
+
+// ===== ADD RECTANGLE TOOL =====
+stage.addEventListener("mousedown", (e) => {
+
+  if (tool !== "rectangle") return;
+  if (e.target !== stage) return;
+
+  let box = document.createElement("div");
+  box.className = "object";
+  box.style.left = e.offsetX + "px";
+  box.style.top = e.offsetY + "px";
+  box.style.background = colorPicker.value;
+
+  stage.appendChild(box);
+
+  makeDraggable(box);
 
   objects.push({
-    el: el,
-    name: name,
+    el: box,
+    name: "box" + objects.length,
     scale: 1,
     rotation: 0
   });
 
   keyframes[objects.length - 1] = {};
   buildTimeline();
-}
+});
 
-stage.addEventListener("mousedown", function(e) {
 
-  if (tool === "draw") {
-    let div = document.createElement("div");
-    div.style.left = e.offsetX + "px";
-    div.style.top = e.offsetY + "px";
-    div.style.width = "100px";
-    div.style.height = "100px";
-    div.style.background = "red";
+// ===== SELECT / MOVE =====
+function makeDraggable(el) {
+  el.onmousedown = function(e) {
+    if (tool !== "select") return;
 
-    createObject(div, "shape" + objects.length);
-  }
-
-  if (tool === "select") {
-    let target = e.target;
-    if (!target.classList.contains("object")) return;
-
-    let offsetX = e.clientX - target.offsetLeft;
-    let offsetY = e.clientY - target.offsetTop;
+    let offsetX = e.clientX - el.offsetLeft;
+    let offsetY = e.clientY - el.offsetTop;
 
     document.onmousemove = function(e) {
-      target.style.left = (e.clientX - offsetX) + "px";
-      target.style.top = (e.clientY - offsetY) + "px";
+      el.style.left = (e.clientX - offsetX) + "px";
+      el.style.top = (e.clientY - offsetY) + "px";
     };
 
     document.onmouseup = function() {
       document.onmousemove = null;
     };
-  }
+  };
+}
 
-  if (tool === "scale") {
-    let target = e.target;
-    objects.forEach(obj => {
-      if (obj.el === target) {
-        obj.scale += 0.1;
-        updateTransform(obj);
-      }
-    });
-  }
 
-  if (tool === "rotate") {
-    let target = e.target;
-    objects.forEach(obj => {
-      if (obj.el === target) {
-        obj.rotation += 15;
-        updateTransform(obj);
-      }
-    });
-  }
-
-});
-
+// ===== FILE INSERT =====
 fileInput.onchange = function(e) {
   let file = e.target.files[0];
   if (!file) return;
 
   let img = document.createElement("img");
   img.src = URL.createObjectURL(file);
-  img.style.width = "120px";
+  img.style.position = "absolute";
+  img.style.left = "100px";
+  img.style.top = "100px";
+  img.style.width = "150px";
 
-  createObject(img, file.name);
+  stage.appendChild(img);
+  makeDraggable(img);
+
+  objects.push({
+    el: img,
+    name: file.name,
+    scale: 1,
+    rotation: 0
+  });
+
+  keyframes[objects.length - 1] = {};
+  buildTimeline();
 };
 
-function updateTransform(obj) {
-  obj.el.style.transform =
-    "scale(" + obj.scale + ") rotate(" + obj.rotation + "deg)";
-}
 
+// ===== TIMELINE =====
 function buildTimeline() {
   timeline.innerHTML = "";
 
   objects.forEach((obj, index) => {
-
     let row = document.createElement("div");
     row.className = "row";
 
@@ -122,9 +149,7 @@ function buildTimeline() {
       cell.onclick = function() {
         keyframes[index][f] = {
           x: obj.el.offsetLeft,
-          y: obj.el.offsetTop,
-          scale: obj.scale,
-          rotation: obj.rotation
+          y: obj.el.offsetTop
         };
         buildTimeline();
       };
@@ -136,12 +161,13 @@ function buildTimeline() {
   });
 }
 
+
+// ===== PLAY =====
 function play() {
   playing = true;
   let frame = 1;
 
   function animate() {
-
     if (!playing || frame > totalFrames) {
       playing = false;
       return;
@@ -163,23 +189,13 @@ function play() {
       }
 
       let progress = (frame - prev) / (next - prev || 1);
-
       let p = keyframes[index][prev];
       let n = keyframes[index][next];
 
       obj.el.style.left =
         (p.x + (n.x - p.x) * progress) + "px";
-
       obj.el.style.top =
         (p.y + (n.y - p.y) * progress) + "px";
-
-      obj.scale =
-        p.scale + (n.scale - p.scale) * progress;
-
-      obj.rotation =
-        p.rotation + (n.rotation - p.rotation) * progress;
-
-      updateTransform(obj);
     });
 
     frame++;
