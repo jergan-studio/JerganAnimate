@@ -1,63 +1,34 @@
-let currentTool = "select";
 let stage = document.getElementById("stage");
-let timeline = document.getElementById("timeline");
-let fileInput = document.getElementById("fileInput");
+let timelineDiv = document.getElementById("timeline");
 
 let objects = [];
-let selected = null;
+let keyframes = {}; // objectIndex -> { frame: {x,y} }
+
+let totalFrames = 30;
 let currentFrame = 1;
-let maxFrames = 60;
 let playing = false;
 
-let keyframes = {}; // objectID -> frame -> transform
+function addSphere() {
+  let sphere = document.createElement("div");
+  sphere.className = "object";
+  sphere.style.left = "50px";
+  sphere.style.top = "50px";
+  stage.appendChild(sphere);
 
-// Build timeline
-for (let i = 1; i <= maxFrames; i++) {
-  let frame = document.createElement("div");
-  frame.className = "frame";
-  frame.innerText = i;
-  frame.onclick = () => selectFrame(i);
-  frame.id = "frame-" + i;
-  timeline.appendChild(frame);
+  makeDraggable(sphere);
+
+  objects.push(sphere);
+  buildTimeline();
 }
-
-function selectFrame(frame) {
-  currentFrame = frame;
-  document.querySelectorAll(".frame").forEach(f => f.classList.remove("activeFrame"));
-  document.getElementById("frame-" + frame).classList.add("activeFrame");
-}
-
-function setTool(tool) {
-  currentTool = tool;
-}
-
-let startX, startY;
-
-stage.addEventListener("mousedown", e => {
-  if (currentTool === "draw") {
-    let rect = document.createElement("div");
-    rect.className = "object";
-    rect.style.left = e.offsetX + "px";
-    rect.style.top = e.offsetY + "px";
-    stage.appendChild(rect);
-
-    makeDraggable(rect);
-
-    objects.push(rect);
-    selected = rect;
-  }
-});
 
 function makeDraggable(el) {
   el.onmousedown = function (e) {
-    if (currentTool !== "select") return;
-    selected = el;
-    startX = e.clientX - el.offsetLeft;
-    startY = e.clientY - el.offsetTop;
+    let offsetX = e.clientX - el.offsetLeft;
+    let offsetY = e.clientY - el.offsetTop;
 
     document.onmousemove = function (e) {
-      el.style.left = (e.clientX - startX) + "px";
-      el.style.top = (e.clientY - startY) + "px";
+      el.style.left = (e.clientX - offsetX) + "px";
+      el.style.top = (e.clientY - offsetY) + "px";
     };
 
     document.onmouseup = function () {
@@ -66,53 +37,78 @@ function makeDraggable(el) {
   };
 }
 
-fileInput.onchange = function (e) {
-  let file = e.target.files[0];
-  let img = document.createElement("img");
-  img.src = URL.createObjectURL(file);
-  img.className = "object";
-  img.style.width = "120px";
-  img.style.height = "auto";
-  stage.appendChild(img);
+function buildTimeline() {
+  timelineDiv.innerHTML = "";
 
-  makeDraggable(img);
+  let table = document.createElement("table");
 
-  objects.push(img);
-  selected = img;
-};
+  // Header row
+  let header = document.createElement("tr");
+  header.appendChild(document.createElement("th"));
 
-function addKeyframe() {
-  if (!selected) return;
+  for (let f = 1; f <= totalFrames; f++) {
+    let th = document.createElement("th");
+    th.innerText = f;
+    header.appendChild(th);
+  }
 
-  let id = objects.indexOf(selected);
-  if (!keyframes[id]) keyframes[id] = {};
+  table.appendChild(header);
 
-  keyframes[id][currentFrame] = {
-    x: selected.offsetLeft,
-    y: selected.offsetTop
+  // Object rows
+  objects.forEach((obj, index) => {
+    let row = document.createElement("tr");
+
+    let label = document.createElement("td");
+    label.innerText = "sphere " + index;
+    label.className = "rowLabel";
+    row.appendChild(label);
+
+    for (let f = 1; f <= totalFrames; f++) {
+      let cell = document.createElement("td");
+
+      cell.onclick = () => addKeyframe(index, f, cell);
+
+      if (keyframes[index] && keyframes[index][f]) {
+        cell.innerText = "!";
+        cell.classList.add("keyframe");
+      }
+
+      row.appendChild(cell);
+    }
+
+    table.appendChild(row);
+  });
+
+  timelineDiv.appendChild(table);
+}
+
+function addKeyframe(index, frame, cell) {
+  if (!keyframes[index]) keyframes[index] = {};
+
+  keyframes[index][frame] = {
+    x: objects[index].offsetLeft,
+    y: objects[index].offsetTop
   };
 
-  let diamond = document.createElement("div");
-  diamond.className = "keyframe";
-  document.getElementById("frame-" + currentFrame).appendChild(diamond);
+  buildTimeline();
 }
 
 function play() {
   playing = true;
-  let frame = 1;
+  currentFrame = 1;
+  animate();
+}
 
-  function animate() {
-    if (!playing || frame > maxFrames) {
-      playing = false;
-      return;
-    }
-
-    updateFrame(frame);
-    frame++;
-    requestAnimationFrame(animate);
+function animate() {
+  if (!playing || currentFrame > totalFrames) {
+    playing = false;
+    return;
   }
 
-  animate();
+  updateFrame(currentFrame);
+
+  currentFrame++;
+  requestAnimationFrame(animate);
 }
 
 function updateFrame(frame) {
@@ -120,6 +116,8 @@ function updateFrame(frame) {
     if (!keyframes[index]) return;
 
     let frames = Object.keys(keyframes[index]).map(Number).sort((a,b)=>a-b);
+    if (frames.length < 2) return;
+
     let prev = frames[0];
     let next = frames[frames.length - 1];
 
