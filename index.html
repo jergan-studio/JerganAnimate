@@ -16,6 +16,9 @@
     #topbar {
       padding: 6px;
       border-bottom: 1px solid #00ff88;
+      display: flex;
+      align-items: center;
+      gap: 10px;
     }
 
     #workspace {
@@ -24,7 +27,7 @@
     }
 
     #tools {
-      width: 140px;
+      width: 150px;
       border-right: 1px solid #00ff88;
       padding: 6px;
     }
@@ -45,17 +48,23 @@
       overflow: hidden;
     }
 
+    canvas {
+      position: absolute;
+      top: 0;
+      left: 0;
+    }
+
     .object {
       position: absolute;
-      background: red;
       width: 100px;
       height: 100px;
+      background: red;
       transform-origin: center;
-      cursor: pointer;
+      cursor: move;
     }
 
     #timeline {
-      height: 150px;
+      height: 120px;
       border-top: 1px solid #00ff88;
       overflow-x: auto;
       white-space: nowrap;
@@ -72,7 +81,7 @@
     }
 
     .frame {
-      width: 40px;
+      width: 35px;
       height: 25px;
       border-right: 1px solid #003322;
       text-align: center;
@@ -89,20 +98,24 @@
 <body>
 
 <div id="topbar">
-  JerganAnimate JVES
+  Tool:
+  <span id="toolLabel">Select</span>
+  Color:
+  <input type="color" id="colorPicker" value="#ff0000">
 </div>
 
 <div id="workspace">
   <div id="tools">
+    <button onclick="setTool('select')">Select</button>
     <button onclick="setTool('draw')">Draw</button>
-    <button onclick="setTool('select')">Move</button>
-    <button onclick="setTool('scale')">Scale</button>
-    <button onclick="setTool('rotate')">Rotate</button>
+    <button onclick="setTool('rectangle')">Add Box</button>
     <input type="file" id="fileInput">
     <button onclick="play()">Play</button>
   </div>
 
-  <div id="stage"></div>
+  <div id="stage">
+    <canvas id="drawCanvas"></canvas>
+  </div>
 </div>
 
 <div id="timeline"></div>
