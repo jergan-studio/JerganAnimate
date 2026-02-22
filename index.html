@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>JerganAnimate JVES</title>
+  <title>JerganAnimate JVES v3</title>
   <style>
     body {
       margin: 0;
@@ -18,7 +18,7 @@
       border-bottom: 1px solid #00ff88;
       display: flex;
       align-items: center;
-      gap: 6px;
+      gap: 10px;
     }
 
     #workspace {
@@ -32,46 +32,43 @@
       padding: 6px;
       display: flex;
       flex-direction: column;
-      gap: 5px;
+      gap: 4px;
     }
 
-    #tools button, #tools input, #tools label {
+    #tools button, #tools input, #tools select {
       width: 100%;
       background: black;
       color: #00ff88;
       border: 1px solid #00ff88;
+      padding: 4px;
       cursor: pointer;
-      text-align: center;
-    }
-
-    #stageContainer {
-      flex: 1;
-      position: relative;
-      background: #1a1a1a;
-      display: flex;
-      flex-direction: column;
     }
 
     #stage {
       flex: 1;
-      background-color: #111;
-      border-bottom: 1px solid #00ff88;
+      position: relative;
+      background: #1a1a1a;
+      overflow: hidden;
+    }
+
+    .object {
+      position: absolute;
+      transform-origin: center;
+      cursor: pointer;
     }
 
     #timeline {
-      height: 150px;
+      height: 180px;
       border-top: 1px solid #00ff88;
       overflow-x: auto;
       white-space: nowrap;
       padding: 5px;
-      display: flex;
-      flex-direction: column;
-      gap: 4px;
     }
 
     .row {
       display: flex;
       align-items: center;
+      margin-bottom: 2px;
     }
 
     .rowLabel {
@@ -86,37 +83,40 @@
       cursor: pointer;
     }
 
-    .keyframe {
+    .key {
       color: #00ff88;
       font-weight: bold;
     }
-
   </style>
 </head>
 <body>
 
 <div id="topbar">
-  <button onclick="setTool('draw')">Draw Rect</button>
-  <button onclick="setTool('select')">Move</button>
-  <button onclick="setTool('scale')">Scale</button>
-  <button onclick="setTool('rotate')">Rotate</button>
-  <input type="file" id="fileInput">
-  <label>Total Frames: <input type="number" id="totalFramesInput" value="60" min="1"></label>
-  <button onclick="play()">Play</button>
+  JerganAnimate JVES v3
+  <label>Total Frames: <input type="number" id="totalFramesInput" value="30" min="1" style="width:50px"></label>
+  <button onclick="updateTotalFrames()">Set</button>
   <button onclick="downloadMP4()">Download MP4</button>
 </div>
 
 <div id="workspace">
   <div id="tools">
-    <span>Tools Panel</span>
+    <select id="shapeSelect">
+      <option value="rect">Rectangle</option>
+      <option value="circle">Circle</option>
+    </select>
+    <button onclick="setTool('draw')">Draw</button>
+    <button onclick="setTool('select')">Move</button>
+    <button onclick="setTool('scale')">Scale</button>
+    <button onclick="setTool('rotate')">Rotate</button>
+    <input type="file" id="fileInput">
+    <button onclick="play()">Play</button>
   </div>
-  <div id="stageContainer">
-    <canvas id="stage" width="800" height="400"></canvas>
-    <div id="timeline"></div>
-  </div>
+
+  <div id="stage"></div>
 </div>
 
-<script src="https://cdnjs.cloudflare.com/ajax/libs/ccapture.js/1.1.0/CCapture.all.min.js"></script>
+<div id="timeline"></div>
+
 <script src="engine.js"></script>
 </body>
 </html>
