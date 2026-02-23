@@ -1,122 +1,27 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-  <title>JerganAnimate JVES v3</title>
-  <style>
-    body {
-      margin: 0;
-      background: #111;
-      color: #00ff88;
-      font-family: monospace;
-      display: flex;
-      flex-direction: column;
-      height: 100vh;
-    }
-
-    #topbar {
-      padding: 6px;
-      border-bottom: 1px solid #00ff88;
-      display: flex;
-      align-items: center;
-      gap: 10px;
-    }
-
-    #workspace {
-      flex: 1;
-      display: flex;
-    }
-
-    #tools {
-      width: 160px;
-      border-right: 1px solid #00ff88;
-      padding: 6px;
-      display: flex;
-      flex-direction: column;
-      gap: 4px;
-    }
-
-    #tools button, #tools input, #tools select {
-      width: 100%;
-      background: black;
-      color: #00ff88;
-      border: 1px solid #00ff88;
-      padding: 4px;
-      cursor: pointer;
-    }
-
-    #stage {
-      flex: 1;
-      position: relative;
-      background: #1a1a1a;
-      overflow: hidden;
-    }
-
-    .object {
-      position: absolute;
-      transform-origin: center;
-      cursor: pointer;
-    }
-
-    #timeline {
-      height: 180px;
-      border-top: 1px solid #00ff88;
-      overflow-x: auto;
-      white-space: nowrap;
-      padding: 5px;
-    }
-
-    .row {
-      display: flex;
-      align-items: center;
-      margin-bottom: 2px;
-    }
-
-    .rowLabel {
-      width: 120px;
-    }
-
-    .frame {
-      width: 40px;
-      height: 25px;
-      border-right: 1px solid #003322;
-      text-align: center;
-      cursor: pointer;
-    }
-
-    .key {
-      color: #00ff88;
-      font-weight: bold;
-    }
-  </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Jergan Animate</title>
+    <link rel="stylesheet" href="style.css">
 </head>
 <body>
+    <div class="topbar">
+        <h1>Jergan Animate</h1>
+        <button id="add-audio-btn">Add Audio</button>
+    </div>
 
-<div id="topbar">
-  JerganAnimate JVES v3
-  <label>Total Frames: <input type="number" id="totalFramesInput" value="30" min="1" style="width:50px"></label>
-  <button onclick="updateTotalFrames()">Set</button>
-  <button onclick="downloadMP4()">Download MP4</button>
-</div>
+    <!-- Modal for Audio Selection -->
+    <div id="audio-modal" class="modal">
+      <div class="modal-content">
+        <span class="close">&times;</span>
+        <h2>Select Audio File</h2>
+        <input type="file" id="audio-file" accept="audio/*">
+        <button id="upload-audio">Upload</button>
+      </div>
+    </div>
 
-<div id="workspace">
-  <div id="tools">
-    <select id="shapeSelect">
-      <option value="rect">Rectangle</option>
-      <option value="circle">Circle</option>
-    </select>
-    <button onclick="setTool('draw')">Draw</button>
-    <button onclick="setTool('select')">Move</button>
-    <button onclick="setTool('scale')">Scale</button>
-    <button onclick="setTool('rotate')">Rotate</button>
-    <input type="file" id="fileInput">
-    <button onclick="play()">Play</button>
-  </div>
-
-  <div id="stage"></div>
-</div>
-
-<div id="timeline"></div>
-
-<script src="engine.js"></script>
+    <script src="script.js"></script>
 </body>
 </html>
